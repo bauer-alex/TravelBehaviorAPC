@@ -1,0 +1,381 @@
+---
+title: "Reisehäufigkeit"
+author: "Alexander Bauer, Maximilian Weigert"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    code_folding: hide
+  pdf_document:
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# devtools::install("../BedeutungswandelHelpers/")
+library(BedeutungswandelHelpers)
+library(tidyverse)
+theme_set(theme_minimal())
+library(mgcv)
+```
+
+# Datenaufbereitung
+
+```{r, working directory, echo = FALSE}
+user <- "Pauline"
+if (user == "Elisabeth") {
+  setwd("C:/Users/di67mav/LRZ Sync+Share/TourIST (Alexander Bauer)/Daten/Daten_aufbereitet")
+} else if (user == "Max") {
+  setwd("C:/Users/ri87nix/LRZ Sync+Share/TourIST_neu/TourIST_2021-03-07T0005/Daten/Daten_aufbereitet")
+} else if (user == "Alex") {
+  setwd("~/LRZ Sync+Share/TourIST_neu/TourIST_2021-03-07T0005/Daten/Daten_aufbereitet")
+
+} else if (user == "Pauline") {
+  setwd("/Users/pauline/Desktop/")
+}
+dat <- readRDS("210727_dat_ftf.rds")
+```
+
+##### Basic stuff
+
+```{r}
+# Einschraenkung auf relevante Variablen
+ dat <- dat %>% select(travel_year, S_Geschlecht, S_Alter, S_Hauptverdiener, S_Alter_HV,
+                      S_Bildung_HV, S_Wohnortgroesse, S_Kinder_0_bis_5_binaer,
+                      S_Einkommen_HH, S_Haushaltsgroesse, S_Haushaltsgroesse_14plus,                       JS_HUR_Ausgaben_gesamt, JS_HUR_Reisebegleitung_HH,
+                       JS_HUR_Reisebegleitung_Gesamtanzahl, JS_Anzahl_URs,
+                      JS_HUR_Reisebegleitung_HH, RH_AnzKUR_VJ)
+```
+
+Umkodieren von *keine Angabe*- und *-99*-Werten zu NA.
+
+```{r}
+dat <- dat %>% 
+  mutate_all(~ na_if(., "keine Angabe")) %>% 
+  mutate_all(~ na_if(., "-99"))
+```
+
+Angaben *mehr als 5 Personen* in Haushaltsgröße umkodieren zu 5,3 Personen.  
+Grundlage dafür:  
+5,3 ist der Mittelwert der Anzahl Personen (insgesamt, aber auch nur bzgl. 14+ Jahren) im HH mit
+5+ Personen im Reisejahr 2000 (Variablen 's9a' und 's9b')
+
+```{r}
+dat <- dat %>% 
+  mutate(S_Haushaltsgroesse        = as.numeric(substr(S_Haushaltsgroesse, 1, 1)),
+         S_Haushaltsgroesse_14plus = as.numeric(substr(S_Haushaltsgroesse_14plus, 1, 1))) %>% 
+  mutate(S_Haushaltsgroesse        = case_when(S_Haushaltsgroesse == 5 ~ 5.3,
+                                               TRUE                    ~ S_Haushaltsgroesse),
+         S_Haushaltsgroesse_14plus = case_when(S_Haushaltsgroesse_14plus == 5 ~ 5.3,
+                                        TRUE                               ~ S_Haushaltsgroesse_14plus))
+
+# Anzahl Kinder <14 Jahre im Haushalt berechnen
+dat <- dat %>% 
+  mutate(S_Haushaltsgroesse_Kinder = S_Haushaltsgroesse - S_Haushaltsgroesse_14plus)
+```
+
+```{r}
+dat <- dat %>% 
+  mutate(S_Haushaltsgroesse_equi = 1 + 0.5 * (S_Haushaltsgroesse_14plus - 1) +  0.3 * S_Haushaltsgroesse_Kinder)
+```
+
+
+Relevante Variable 1: HH-Einkommen pro effektiver Person
+```{r}
+dat <- dat %>% mutate(S_Einkommen_HH = ifelse(S_Einkommen_HH > 6000,
+                                               6000, S_Einkommen_HH))
+dat <- dat %>% 
+  mutate(S_Einkommen_HH_equi = S_Einkommen_HH / S_Haushaltsgroesse_equi)
+```
+
+##### Zielgröße (Anzahl der Urlaubsreisen) 
+
+```{r}
+dat %>%
+  mutate(travel_year = factor(travel_year)) %>%
+  ggplot(aes(travel_year, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+#Verteilung der Anzahl der Reisen 
+```{r}
+dat %>% 
+  mutate(JS_Anzahl_URs = factor(JS_Anzahl_URs)) %>% 
+  ggplot(aes(travel_year, fill = JS_Anzahl_URs)) + geom_bar(position = "fill")
+```
+
+
+#Anzahl Haupturlaubsreisen vs Anzahl Kurzurlaube 
+```{r}
+knitr::kable(table(dat$RH_AnzKUR_VJ, dat$JS_Anzahl_URs))
+
+hist(dat$JS_Anzahl_URs)
+hist(dat$RH_AnzKUR_VJ)
+```
+
+
+##### Vorbereitungen
+
+
+1.Allgemeine Einschränkungen der Daten
+
+- nur JS_Anzahl_URs > 0
+```{r}
+dat_model <- dat %>% 
+  filter(JS_Anzahl_URs > 0)
+```
+
+
+- Fokus auf Jahre 1981 bis 2018, da die Reiseausgaben vorher einen Bruch aufweisen
+```{r}
+dat_model <- dat_model %>% 
+  filter(travel_year >= 1981)
+```
+
+
+2. Alter des Hauptverdieners
+
+Es werden alle die Beobachtungen ausgeschlossen, bei denen das Alter des Hauptverdieners
+im HH unbekannt ist, d.h. bei welchen die Spalte 'S_Alter_HV' NA als Wert enthält
+und die befragte Person nicht der Hauptverdiener ist.
+
+```{r}
+dat_model <- dat_model %>% 
+  mutate(S_Alter_HV = case_when(S_Hauptverdiener == "Ja" ~ S_Alter,
+                                TRUE                     ~ S_Alter_HV)) %>% 
+  filter(!is.na(S_Alter_HV))
+```
+
+3. Umbenennung der Zeitvariablen in 'period' und 'age'
+
+```{r}
+dat_model <- dat_model %>% 
+  dplyr::rename(period = travel_year,
+                age    = S_Alter_HV)
+```
+
+
+4. Alte Faktor-Levels bei den kategorialen Variablen entfernen
+
+```{r}
+vars_cat <- c("S_Geschlecht","S_Bildung_HV","S_Kinder_0_bis_5_binaer","S_Wohnortgroesse")
+dat_model <- dat_model %>% 
+  mutate(across(all_of(vars_cat), ~ droplevels(.)))
+```
+
+5. Reisebegleitung insgesamt (egal ob HH oder nicht-HH) in sinnvolle Kategorien unterteilen
+
+```{r}
+dat_model <- dat_model %>% 
+  mutate(Reisebegleitung_cat = case_when(is.na(JS_HUR_Reisebegleitung_Gesamtanzahl) ~ NA_character_,
+                                         JS_HUR_Reisebegleitung_Gesamtanzahl == 1  ~ "1",
+                                         JS_HUR_Reisebegleitung_Gesamtanzahl == 2  ~ "2",
+                                         JS_HUR_Reisebegleitung_Gesamtanzahl == 3  ~ "3",
+                                         JS_HUR_Reisebegleitung_Gesamtanzahl == 4  ~ "4",
+                                         JS_HUR_Reisebegleitung_Gesamtanzahl == 5  ~ "5",
+                                         JS_HUR_Reisebegleitung_Gesamtanzahl <= 10 ~ "6-10",
+                                         TRUE ~ ">10")) %>% 
+  mutate(Reisebegleitung_cat = factor(Reisebegleitung_cat, levels = c("1","2","3","4","5","6-10",">10")))
+```
+
+
+
+#Model Poisson
+```{r}
+model_P <- bam(formula = JS_Anzahl_URs ~ te(period, age, bs = "ps", k = c(10, 10)) +
+               S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse + S_Bildung_HV +
+               s(S_Einkommen_HH_equi, bs = "ps", k = 10) + S_Haushaltsgroesse,
+             data = dat_model, family = poisson(link = "log"))
+
+summary(model_P)
+
+gam.check(model_P)
+
+plot(model_P$fitted.values, residuals(model_P))
+```
+
+#Model Gamma
+```{r}
+model_G <- bam(formula = JS_Anzahl_URs ~ te(period, age, bs = "ps", k = c(10, 10)) +
+               S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse + S_Bildung_HV +
+               s(S_Einkommen_HH_equi, bs = "ps", k = 10) + S_Haushaltsgroesse,
+             data = dat_model,family = Gamma(link = "log"))
+
+summary(model_G)
+
+gam.check(model_G)
+
+plot(model_G$fitted.values, residuals(model_G))
+```
+
+
+##### Zielgröße vs. Periode
+
+```{r}
+dat_model %>% 
+  mutate(period = factor(period)) %>% 
+  ggplot(aes(period, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  mutate(period = factor(period)) %>% 
+  ggplot(aes(period, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+
+
+##### Zielgröße vs. Alter des Hauptverdieners im HH
+```{r}
+dat_model %>% 
+  mutate(age = factor(age)) %>% 
+  ggplot(aes(age, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  mutate(age = factor(age)) %>% 
+  ggplot(aes(age, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+
+##### Zielgröße vs. Geschlecht
+
+```{r}
+dat_model %>% 
+  ggplot(aes(S_Geschlecht, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  ggplot(aes(S_Geschlecht, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+
+##### Zielgröße vs. ob Kleinkinder (<= 5 Jahre) im Haushalt leben
+
+```{r}
+dat_model %>% 
+  ggplot(aes(S_Kinder_0_bis_5_binaer, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  ggplot(aes(S_Kinder_0_bis_5_binaer, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+##### Zielgröße vs. Wohnortgröße
+```{r}
+dat_model %>% 
+  ggplot(aes(S_Wohnortgroesse, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  ggplot(aes(S_Wohnortgroesse, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+##### Zielgröße vs. Bildung des Hauptverdieners
+
+```{r}
+dat_model %>% 
+  ggplot(aes(S_Bildung_HV, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  ggplot(aes(S_Bildung_HV, JS_Anzahl_URs)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+
+##### Zielgröße vs. personen-adjustiertem HH-Einkommen
+
+```{r}
+ggplot(dat_model, aes(S_Einkommen_HH_equi, JS_Anzahl_URs)) +
+  geom_hex()
+```
+
+##### Zielgröße vs. insgesamt mitgereisten Personen
+
+```{r}
+ggplot(dat_model, aes(JS_HUR_Reisebegleitung_Gesamtanzahl, JS_Anzahl_URs)) +
+  geom_hex()
+```
+
+
+##### Heatmap of APC surface Vergleich der Modelle
+
+```{r}
+
+plot1 <- plot_APCheatmap(model_P, dat_model, plot_CI = FALSE)
+
+plot2 <- plot_APCheatmap(model_G, dat_model, plot_CI = FALSE)
+
+```
+
+
+##### Partial APC plots Poisson
+```{r}
+plot_partialAPCeffects(model_P, dat_model, variable = "age")
+plot_partialAPCeffects(model_P, dat_model, variable = "period")
+plot_partialAPCeffects(model_P, dat_model, variable = "cohort")
+
+```
+
+##### Partial APC plots Gamma
+```{r}
+plot_partialAPCeffects(model_G, dat_model, variable = "age")
+plot_partialAPCeffects(model_G, dat_model, variable = "period")
+plot_partialAPCeffects(model_G, dat_model, variable = "cohort")
+```
+
+
+##### Effects of further covariates Poisson
+```{r}
+plot(model_P, select = 2, rug = TRUE)
+```
+
+##### Effects of further covariates Gaumma
+```{r}
+plot(model_G, select = 2, rug = TRUE)
+```
+
+
+##### Modellevaluation Poisson
+```{r}
+gam.check(model_P)
+```
+
+##### Modellevaluation Gamma
+```{r}
+gam.check(model_G)
+```
+
+
+
+

@@ -1,0 +1,175 @@
+---
+title: "Modelle GER - West - Ost"
+author: "Alexander Bauer"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+user <- "Alex"
+
+library(APCtools)
+library(mgcv)
+library(dplyr)
+library(ggplot2)
+theme_set(theme_minimal())
+
+source("../Code/0_dataPrep.R")
+```
+
+
+# Participation
+
+```{r}
+dat_P  <- read_and_prepare_data(user = user, model = "participation")
+dat_Pw <- dat_P %>% filter(is.na(S_Herkunft) | S_Herkunft == "West")
+dat_Po <- dat_P %>% filter(S_Herkunft == "Ost")
+
+ylim_P <- c(0.1,2)
+```
+
+
+## Model for whole dataset
+
+```{r}
+m_P <- bam(formula = y_atLeastOneUR ~ te(period, age, k = c(10, 10), bs = "ps") +
+             S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse +
+             S_Bildung_HV + s(S_Einkommen_HH_equi, bs = "ps", k =10) +
+             S_Haushaltsgroesse,
+           family = binomial(link = "logit"), data = dat_P)
+
+plot_jointMarginalAPCeffects(list(m_P), dat_P, ylim = ylim_P,
+                             vlines_list = list("period" = 1990,
+                                                "cohort" = 1910))
+```
+
+## Model for West Germany
+
+```{r}
+m_Pw <- bam(formula = y_atLeastOneUR ~ te(period, age, k = c(10, 10), bs = "ps") +
+              S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse +
+              S_Bildung_HV + s(S_Einkommen_HH_equi, bs = "ps", k =10) +
+              S_Haushaltsgroesse,
+            family = binomial(link = "logit"), data = dat_Pw)
+
+plot_jointMarginalAPCeffects(list(m_Pw), dat_Pw, ylim = ylim_P,
+                             vlines_list = list("period" = 1990,
+                                                "cohort" = 1910))
+```
+
+## Model for East Germany
+
+```{r}
+m_Po <- bam(formula = y_atLeastOneUR ~ te(period, age, k = c(10, 10), bs = "ps") +
+              S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse +
+              S_Bildung_HV + s(S_Einkommen_HH_equi, bs = "ps", k =10) +
+              S_Haushaltsgroesse,
+            family = binomial(link = "logit"), data = dat_Po)
+
+plot_jointMarginalAPCeffects(list(m_Po), dat_Po, ylim = ylim_P)
+```
+
+
+
+# Travel Frequency
+
+```{r}
+dat_F  <- read_and_prepare_data(user = user, model = "frequency")
+dat_Fw <- dat_F %>% filter(is.na(S_Herkunft) | S_Herkunft == "West")
+dat_Fo <- dat_F %>% filter(S_Herkunft == "Ost")
+
+ylim_F <- c(0.5,2.2)
+```
+
+
+## Model for whole dataset
+
+```{r}
+m_F <- bam(y_atLeastTwoURs ~ te(period, age, k = c(10, 10), bs = "ps") +
+             S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse + S_Bildung_HV +
+             s(S_Einkommen_HH_equi, bs = "ps", k = 10) + S_Haushaltsgroesse,
+           family = binomial(link = "logit"), data = dat_F)
+
+plot_jointMarginalAPCeffects(list(m_F), dat_F, ylim = ylim_F,
+                             vlines_list = list("period" = 1990,
+                                                "cohort" = 1910))
+```
+
+## Model for West Germany
+
+```{r}
+m_Fw <- bam(y_atLeastTwoURs ~ te(period, age, k = c(10, 10), bs = "ps") +
+              S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse + S_Bildung_HV +
+              s(S_Einkommen_HH_equi, bs = "ps", k = 10) + S_Haushaltsgroesse,
+            family = binomial(link = "logit"), data = dat_Fw)
+
+plot_jointMarginalAPCeffects(list(m_Fw), dat_Fw, ylim = ylim_F,
+                             vlines_list = list("period" = 1990,
+                                                "cohort" = 1910))
+```
+
+## Model for East Germany
+
+```{r}
+m_Fo <- bam(y_atLeastTwoURs ~ te(period, age, k = c(10, 10), bs = "ps") +
+              S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse + S_Bildung_HV +
+              s(S_Einkommen_HH_equi, bs = "ps", k = 10) + S_Haushaltsgroesse,
+            family = binomial(link = "logit"), data = dat_Fo)
+
+plot_jointMarginalAPCeffects(list(m_Fo), dat_Fo, ylim = ylim_F)
+```
+
+
+
+# Relative Travel Expenses
+
+```{r}
+dat_E  <- read_and_prepare_data(user = user, model = "expenses")
+dat_Ew <- dat_E %>% filter(is.na(S_Herkunft) | S_Herkunft == "West")
+dat_Eo <- dat_E %>% filter(S_Herkunft == "Ost")
+
+ylim_E <- c(0.5,1.15)
+```
+
+
+## Model for whole dataset
+
+```{r}
+m_E <- bam(formula = rel_expenses ~ te(period, age, bs = "ps", k = c(10, 10)) +
+             S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse +
+             S_Bildung_HV + S_Haushaltsgroesse + JS_HUR_Reisedauer +
+             s(S_Einkommen_HH_equi, bs = "ps", k = 10),
+           family = Gamma(link = "log"), data = dat_E)
+
+plot_jointMarginalAPCeffects(list(m_E), dat_E, ylim = ylim_E,
+                             vlines_list = list("period" = 1990,
+                                                "cohort" = 1910))
+```
+
+## Model for West Germany
+
+```{r}
+m_Ew <- bam(formula = rel_expenses ~ te(period, age, bs = "ps", k = c(10, 10)) +
+              S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse +
+              S_Bildung_HV + S_Haushaltsgroesse + JS_HUR_Reisedauer +
+              s(S_Einkommen_HH_equi, bs = "ps", k = 10),
+            family = Gamma(link = "log"), data = dat_Ew)
+
+plot_jointMarginalAPCeffects(list(m_Ew), dat_Ew, ylim = ylim_E,
+                             vlines_list = list("period" = 1990,
+                                                "cohort" = 1910))
+```
+
+## Model for East Germany
+
+```{r}
+m_Eo <- bam(formula = rel_expenses ~ te(period, age, bs = "ps", k = c(10, 10)) +
+              S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse +
+              S_Bildung_HV + S_Haushaltsgroesse + JS_HUR_Reisedauer +
+              s(S_Einkommen_HH_equi, bs = "ps", k = 10),
+            family = Gamma(link = "log"), data = dat_Eo)
+
+plot_jointMarginalAPCeffects(list(m_Eo), dat_Eo, ylim = ylim_E)
+```

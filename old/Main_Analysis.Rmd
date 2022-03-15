@@ -1,0 +1,177 @@
+---
+title: 'Bedeutungswandel: Anteil der Reiseausgaben am Einkommen'
+author: "Juliana Schäfer, Maximilian Weigert, Alexander Bauer"
+date: "30.06.2021"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+user <- "Max"
+if(user == "Elisabeth") {
+  setwd("C:/Users/di67mav/LRZ Sync+Share/TourIST (Alexander Bauer)/Daten/Daten_aufbereitet")
+}
+if(user == "Max") {
+  setwd("C:/Users/ri87nix/LRZ Sync+Share/TourIST_neu/TourIST_2021-03-07T0005/Daten/Daten_aufbereitet")
+}
+if (user == "Juliana") {
+  setwd("~/LRZ Sync+Share/TourIST_neu (Alexander Bauer)/TourIST_2021-03-07T0005/Daten/Daten_aufbereitet")
+}
+library(tidyverse)
+library(mgcv)
+library(RColorBrewer)
+library(purrr)
+library(data.table)
+library(ggpubr)
+
+# Read data:
+dat <- readRDS("210527_dat_ftf.rds")
+
+if(user == "Max") {
+  setwd("C:/Users/ri87nix/Documents/Git/TourIST/2_paper/Bedeutungswandel")
+}
+if(user == "Juliana") {
+  setwd("~/Arbeit/tourist/2_paper/Bedeutungswandel")
+}
+source("Functions.R")
+```
+
+
+```{r, include=FALSE, echo = FALSE, warning = FALSE}
+# Preprocessing:
+
+# Anteil Ausgaben am Haushaltseinkommen:
+dat_einkommen <- data.table(dat)
+dat_einkommen <- dat_einkommen[!is.na(JS_HUR_Ausgaben_AnteilEinkHH)]
+dat_einkommen <- dat_einkommen[!is.na(JS_HUR_Ausgaben_gesamt)]
+dat_einkommen <- dat_einkommen[JS_HUR_Ausgaben_AnteilEinkHH != -99]
+#dat_einkommen[, JS_HUR_Ausgaben_AnteilEinkHH := JS_HUR_Ausgaben_AnteilEinkHH / 12]
+
+# Anteil Ausgaben aller Reisen am Haushaltseinkommen (aufaddiert)
+#dat_einkommen[,JS_Gesamt_Ausgaben_AnteilEinkHH := sum(
+#  JS_HUR_Ausgaben_AnteilEinkHH[which(JS_HUR_Ausgaben_AnteilEinkHH > 0)],
+#  JS_UR2_Ausgaben_AnteilEinkHH[which(JS_UR2_Ausgaben_AnteilEinkHH > 0)],
+#  JS_UR3_Ausgaben_AnteilEinkHH[which(JS_UR3_Ausgaben_AnteilEinkHH > 0)]),
+#  by = id]
+dat_einkommen$JS_Gesamt_Ausgaben_AnteilEinkHH <- dat_einkommen$JS_HUR_Ausgaben_AnteilEinkHH
+
+dat_einkommen[, JS_Gesamt_Ausgaben_AnteilEinkHH := JS_Gesamt_Ausgaben_AnteilEinkHH / 12]
+dat_einkommen <- data_preparation(dat_einkommen, 
+                                  target = "JS_Gesamt_Ausgaben_AnteilEinkHH")
+dat_einkommen <- preprocessing_model(dat_einkommen, 
+                                     target = "JS_Gesamt_Ausgaben_AnteilEinkHH")
+
+# Einschränken der Reisejahre:
+dat_einkommen <- dat_einkommen %>% filter(period > 1980) #%>%
+  #filter(is.na(S_Herkunft) | S_Herkunft == "West")
+```
+
+# Pure
+
+## Model:
+```{r, echo = FALSE, warning = FALSE}
+model_pure <- model_pure(data = dat_einkommen,
+                         target = "JS_Gesamt_Ausgaben_AnteilEinkHH",
+                         method = "bam")
+summary(model_pure)
+```
+
+```{r, echo = FALSE, warning = FALSE}
+plot(model_pure)
+```
+
+
+```{r fig.height = 10, echo = FALSE, warning = FALSE}
+gam.check(model_pure)
+```
+
+## Heatmap:
+```{r fig.height = 10, echo = FALSE, warning = FALSE}
+plot_heatmap(model = model_pure, data = dat_einkommen, type = "pure", markdown = TRUE, angle = 9)
+```
+
+## APC plots:
+```{r, echo = FALSE, warning = FALSE}
+partial_APC_plots(model = model_pure, data = dat_einkommen,
+                  variable = "period", title = TRUE,
+                  markdown = TRUE)
+
+partial_APC_plots(model = model_pure, data = dat_einkommen,
+                  variable = "age", title = TRUE,
+                  markdown = TRUE)
+
+partial_APC_plots(model = model_pure, data = dat_einkommen,
+                  variable = "cohort", title = TRUE,
+                  markdown = TRUE)
+```
+
+# Covariates
+## Model:
+```{r, echo = FALSE, warning = FALSE}
+model_covariate <- model_covariate(data = dat_einkommen,
+                                   target = "JS_Gesamt_Ausgaben_AnteilEinkHH",
+                                   method = "bam",
+                                   variables_num = c("S_Einkommen_HH"),
+                                   variables_cat = c("JS_HUR_Reisedauer",
+                                                     "S_Haushaltsgroesse"))
+summary(model_covariate)
+```
+
+```{r, echo = FALSE, warning = FALSE}
+plot(model_pure)
+```
+
+```{r fig.height = 10, echo = FALSE, warning = FALSE}
+gam.check(model_covariate)
+```
+
+## Heatmap:
+```{r fig.height = 10, echo = FALSE, warning = FALSE}
+plot_heatmap(model = model_covariate, data = dat_einkommen, type = "covariate",
+             variables_num = c("S_Einkommen_HH"),
+             variables_cat = c("JS_HUR_Reisedauer", "S_Haushaltsgroesse"),
+             markdown = TRUE, angle = 9)
+```
+
+## APC plots:
+```{r, echo = FALSE, warning = FALSE}
+partial_APC_plots(model = model_covariate, data = dat_einkommen,
+                  type = "covariate", variable = "period", title = TRUE,
+                  variables_num = c("S_Einkommen_HH"),
+                  variables_cat = c("JS_HUR_Reisedauer", "S_Haushaltsgroesse"),
+                  markdown = TRUE)
+
+partial_APC_plots(model = model_covariate, data = dat_einkommen, type = "covariate",
+                  variable = "age", title = TRUE,
+                  variables_num = c("S_Einkommen_HH"),
+                  variables_cat = c("JS_HUR_Reisedauer", "S_Haushaltsgroesse"),
+                  markdown = TRUE)
+
+partial_APC_plots(model = model_covariate, data = dat_einkommen, type = "covariate",
+                  variable = "cohort", title = TRUE,
+                  variables_num = c("S_Einkommen_HH"),
+                  variables_cat = c("JS_HUR_Reisedauer", "S_Haushaltsgroesse"),
+                  markdown = TRUE)
+```
+
+## Covariates plots:
+```{r echo = FALSE, warning = FALSE}
+plot_covariates(model = model_covariate, data = dat_einkommen,
+                variables_num = c("S_Einkommen_HH"),
+                variables_cat = c("JS_HUR_Reisedauer", "S_Haushaltsgroesse"),
+                markdown = TRUE)
+```
+
+## Comparison of marginal effects between pure and covariate APC models:
+```{r, echo = FALSE, warning = FALSE}
+compare_pure_covariate(model_pure = model_pure,
+                       model_covariate = model_covariate,
+                       data = dat_einkommen,
+                       variables_num = c("S_Einkommen_HH"),
+                       variables_cat = c("JS_HUR_Reisedauer",
+                                         "S_Haushaltsgroesse"))
+```
+

@@ -1,0 +1,328 @@
+---
+title: "Anteil Reiseausgaben am Haushaltseinkommen"
+author: "Alexander Bauer, Maximilian Weigert"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    code_folding: hide
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(APCtools)
+library(tidyverse)
+theme_set(theme_minimal())
+library(mgcv)
+
+# read and prepare the data
+source("../0_helpers/1_dataPrep.R")
+dat_model <- read_and_prepare_data(user = "Alex", model = "expenses")
+```
+
+# Deskription
+
+##### Anzahl Personen im Haushalt
+
+```{r}
+ggplot(dat_model, aes(period, fill = S_Haushaltsgroesse)) + geom_bar(position = "fill")
+```
+
+##### Anzahl Personen im Haushalt vs. Anzahl Mitreisende aus Haushalt
+
+```{r}
+knitr::kable(table(dat_model$S_Haushaltsgroesse,
+                   dat_model$JS_HUR_Reisebegleitung_HH))
+```
+
+##### Anzahl Personen im Haushalt (<14 & >=14 Jahre) vs. effektive Anzahl Personen im Haushalt
+
+```{r}
+dat_model %>% 
+  group_by(S_Haushaltsgroesse_14plus, S_Haushaltsgroesse_Kinder) %>% 
+  summarize(N                  = length(S_Haushaltsgroesse_equi),
+            min_HHsize_equi    = min(S_Haushaltsgroesse_equi, na.rm = T),
+            mean_HHsize_equi   = mean(S_Haushaltsgroesse_equi, na.rm = T),
+            median_HHsize_equi = median(S_Haushaltsgroesse_equi, na.rm = T),
+            max_HHsize_equi    = max(S_Haushaltsgroesse_equi, na.rm = T)) %>% 
+  knitr::kable()
+```
+
+##### Reiseausgaben des Haushalts
+
+```{r}
+dat_model %>% 
+  mutate(period = factor(period)) %>% 
+  ggplot(aes(period, JS_HUR_Ausgaben_gesamt)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+##### Reiseausgaben des Haushalts (personen-adjustiert)
+
+```{r}
+dat_model %>% 
+  mutate(period = factor(period)) %>% 
+  ggplot(aes(period, JS_HUR_Ausgaben_gesamt_equi)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+##### Haushaltseinkommen
+
+```{r}
+dat_model %>% 
+  mutate(period = factor(period)) %>% 
+  ggplot(aes(period, S_Einkommen_HH)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+##### Haushaltseinkommen (personen-adjustiert)
+
+```{r}
+dat_model %>% 
+  mutate(period = factor(period)) %>% 
+  ggplot(aes(period, S_Einkommen_HH_equi)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+##### Zielgröße
+
+Personen-adjustierte Reiseausgaben pro personen-adjustiertem Einkommen
+
+```{r}
+dat_model %>% 
+  mutate(period = factor(period)) %>% 
+  ggplot(aes(period, JS_HUR_Ausgaben_gesamt_equi)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+# Modellschätzung
+
+Verwendete Kovariablen:  
+- Reisejahr
+- Alter des Hauptverdieners im HH
+- Geschlecht
+- personen-adjustiertes Einkommen im HH
+- Anzahl Reisebegleitung gesamt (unabhängig ob HH oder nicht-HH)
+- Bildung
+- Sind Kleinkinder (<=5 Jahre) im Haushalt ja/nein?
+- Stadtgröße
+
+
+##### Zielgröße vs. Periode
+
+```{r}
+dat_model %>% 
+  mutate(period = factor(period)) %>% 
+  ggplot(aes(period, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  mutate(period = factor(period)) %>% 
+  ggplot(aes(period, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+##### Zielgröße vs. Alter des Hauptverdieners im HH
+
+```{r}
+dat_model %>% 
+  mutate(age = factor(age)) %>% 
+  ggplot(aes(age, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  mutate(age = factor(age)) %>% 
+  ggplot(aes(age, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+##### Zielgröße vs. Geschlecht
+
+```{r}
+dat_model %>% 
+  ggplot(aes(S_Geschlecht, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  ggplot(aes(S_Geschlecht, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+##### Zielgröße vs. ob Kleinkinder (<= 5 Jahre) im Haushalt leben
+
+```{r}
+dat_model %>% 
+  ggplot(aes(S_Kinder_0_bis_5_binaer, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  ggplot(aes(S_Kinder_0_bis_5_binaer, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+##### Zielgröße vs. Wohnortgröße
+
+```{r}
+dat_model %>% 
+  ggplot(aes(S_Wohnortgroesse, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  ggplot(aes(S_Wohnortgroesse, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+##### Zielgröße vs. Bildung des Hauptverdieners
+
+```{r}
+dat_model %>% 
+  ggplot(aes(S_Bildung_HV, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90))
+
+dat_model %>% 
+  ggplot(aes(S_Bildung_HV, rel_expenses)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylim(c(0,3))
+```
+
+##### Zielgröße vs. personen-adjustiertem HH-Einkommen
+
+```{r}
+ggplot(dat_model, aes(S_Einkommen_HH_equi, rel_expenses)) +
+  geom_hex()
+```
+
+##### Zielgröße vs. insgesamt mitgereisten Personen
+
+```{r}
+ggplot(dat_model, aes(JS_HUR_Reisebegleitung_Gesamtanzahl, rel_expenses)) +
+  geom_hex()
+```
+
+
+
+##### Modellschätzung
+
+```{r}
+model_pure <- bam(formula = rel_expenses ~ te(period, age, bs = "ps", k = c(10, 10)),
+                  family = Gamma(link = "log"),
+                  data = dat_model)
+
+summary(model_pure)
+```
+
+```{r}
+model_cov <- bam(formula = rel_expenses ~ te(period, age, bs = "ps", k = c(10, 10)) +
+                   S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse +
+                   S_Bildung_HV + S_Haushaltsgroesse + 
+                   s(S_Einkommen_HH_equi, bs = "ps", k = 10),
+                 family = Gamma(link = "log"),
+                 data = dat_model)
+summary(model_cov)
+```
+
+```{r}
+model_cov2 <- bam(formula = rel_expenses ~ te(period, age, bs = "ps", k = c(10, 10)) +
+                    S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse +
+                    S_Bildung_HV +
+                    s(S_Einkommen_HH_equi, bs = "ps", k = 10) +
+                    JS_HUR_Reisedauer,
+                  family = Gamma(link = "log"),
+                  data = dat_model)
+
+summary(model_cov2)
+```
+
+
+##### Heatmap of APC surface
+
+```{r}
+plot_APCheatmap(dat = dat_model, model = model_pure, plot_CI = FALSE)
+```
+
+```{r}
+plot_APCheatmap(dat = dat_model, model = model_cov, plot_CI = FALSE)
+```
+
+##### Marginal effects
+
+```{r}
+model_list <- list("Pure APC model"  = model_pure,
+                   "Covariate model" = model_cov)
+plot_jointMarginalAPCeffects(model_list, dat_model)
+model_list2 <- list("Covariate model including Reisedauer" = model_cov2,
+                    "Covariate model" = model_cov)
+plot_jointMarginalAPCeffects(model_list2, dat_model) + ylim(0, 5)
+```
+
+
+##### Partial APC plots
+
+```{r}
+plot_partialAPCeffects(model_pure, dat_model, variable = "age")
+plot_partialAPCeffects(model_pure, dat_model, variable = "period")
+plot_partialAPCeffects(model_pure, dat_model, variable = "cohort")
+```
+
+```{r}
+plot_partialAPCeffects(model_cov, dat_model, variable = "age")
+plot_partialAPCeffects(model_cov, dat_model, variable = "period")
+plot_partialAPCeffects(model_cov, dat_model, variable = "cohort")
+```
+
+```{r}
+plot_partialAPCeffects(model_cov2, dat_model, variable = "age")
+plot_partialAPCeffects(model_cov2, dat_model, variable = "period")
+plot_partialAPCeffects(model_cov2, dat_model, variable = "cohort")
+```
+
+##### Effects of further covariates
+
+```{r}
+plot_1Dsmooth(model_cov, select = 2)
+```
+
+```{r}
+plot_1Dsmooth(model_cov2, select = 2)
+```
+
+##### Modellevaluation
+
+```{r}
+gam.check(model_pure)
+```
+
+```{r}
+gam.check(model_cov)
+```
+
+```{r}
+gam.check(model_cov2)
+```

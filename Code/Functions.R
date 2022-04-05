@@ -1,16 +1,13 @@
-
 #' Read the dataset and prepare it for estimating a specific model
 #' 
-#' @param user One of \code{c("Alex","Elisabeth","Max")}.
 #' @param model One of \code{c("participation","frequency","expenses",
 #' "participation_east", "frequency_east", "expenses_east",
 #' "expenses_sensitivity)}.
 #' 
 #' @import checkmate dplyr
 #' 
-read_and_prepare_data <- function(user, model = NULL) {
+read_and_prepare_data <- function(model = NULL) {
   
-  checkmate::assert_choice(user, choices = c("Alex", "Elisabeth", "Max"))
   checkmate::assert_choice(model,
                            choices = c("participation","frequency","expenses",
                                        "participation_east", "frequency_east",
@@ -19,26 +16,18 @@ read_and_prepare_data <- function(user, model = NULL) {
   
   
   ### 1. read the data
-  if (user == "Alex") {
-    path <- "~/LRZ Sync+Share/TourIST_neu/TourIST_2021-03-07T0005/Daten/Daten_aufbereitet/"
-  } else if (user == "Elisabeth") {
-    path <- "C:/Users/di67mav/LRZ Sync+Share/TourIST (Alexander Bauer)/Daten/Daten_aufbereitet/"
-  } else if (user == "Max") {
-    path <- "C:/Users/ri87nix/LRZ Sync+Share/TourIST_neu/TourIST_2021-03-07T0005/Daten/Daten_aufbereitet/"
-  }
-  
-  dat <- readRDS(paste0(path, "210727_dat_ftf.rds"))
+  dat <- readRDS("Data/data.rds")
   
   
   ### 2. only use relevant variables
   dat <- dat %>% select(travel_year, S_Geschlecht, S_Alter, S_Hauptverdiener,
-                        S_Alter_HV, S_Herkunft, S_Staatsangehoerigkeit,
+                        S_Herkunft, S_Staatsangehoerigkeit,
                         S_Bildung, S_Wohnortgroesse, S_Kinder_0_bis_5_binaer,
                         S_Einkommen_HH, S_Haushaltsgroesse, S_Haushaltsgroesse_14plus,
                         JS_HUR_Ausgaben_gesamt, JS_HUR_Reisebegleitung_HH,
                         JS_HUR_Reisebegleitung_Gesamtanzahl, JS_HUR_Reisedauer,
-                        JS_HUR_Reisedistanz, JS_Gesamt_Ausgaben, JS_Anzahl_URs,
-                        RH_AnzKUR_VJ, S_BerufAktuell, S_BerufAktuell_HV)
+                        JS_Gesamt_Ausgaben, JS_Anzahl_URs,
+                        S_BerufAktuell, S_BerufAktuell_HV)
   
   
   ### 3. only use persons between 18 and 80 years of age, as younger and older
@@ -286,6 +275,10 @@ read_and_prepare_data <- function(user, model = NULL) {
   
   return(dat)
 }
+
+
+
+
 
 
 

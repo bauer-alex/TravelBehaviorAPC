@@ -74,7 +74,8 @@ gg4 <- plot_variable(dat_E, y_var = "rel_expenses", plot_type = "line-points",
 
 # joint plot --------------------------------------------------------------
 ggpubr::ggarrange(gg1, gg2, gg3, gg4, ncol = 2, nrow = 2)
-ggsave("Graphics/FigureC1.jpeg", width = 10, height = 6, dpi = 300)
+ggsave("Graphics/FigureC1.jpeg", width = 10, height = 6, dpi = 300,
+       bg = "white")
 
 
 ################################################################################
@@ -233,7 +234,8 @@ gg2 <- plot_dat %>%
         legend.position  = "none")
 
 ggpubr::ggarrange(gg1, gg2, nrow = 2, heights = c(2/3,1/3))
-ggsave("Graphics/FigureC2.jpeg", width = 6, height = 4, dpi = 300)
+ggsave("Graphics/FigureC2.jpeg", width = 6, height = 4, dpi = 300,
+       bg = "white")
 
 # Summary of effects:
 create_APCsummary(list(model_P), dat = dat_P, apc_range = list("cohort" = 1939:2018))
@@ -304,7 +306,8 @@ ggplot(plot_dat, mapping = aes(x = param, y = coef)) +
         axis.title.x    = element_blank(),
         axis.text.x     = element_text(angle = 45, hjust = 1),
         strip.background = element_rect(fill = gray(0.8)))
-ggsave("Graphics/FigureC3.jpeg", width = 8, height = 7, dpi = 300)
+ggsave("Graphics/FigureC3.jpeg", width = 8, height = 7, dpi = 300,
+       bg = "white")
 
 # nonlinear income effects
 plot_dat_list <- lapply(model_suffices, function(suffix) {
@@ -340,7 +343,8 @@ ggplot() +
   theme(strip.background = element_rect(fill = gray(0.8)),
         legend.position  = "none",
         panel.grid.minor = element_blank())
-ggsave("Graphics/FigureC4.jpeg", width = 6, height = 2, dpi = 300)
+ggsave("Graphics/FigureC4.jpeg", width = 6, height = 2, dpi = 300,
+       bg = "white")
 
 
 ################################################################################
@@ -369,7 +373,8 @@ gg4 <- plot_variable(dat_E, y_var = "rel_expenses", plot_type = "line-points",
 
 # joint plot
 ggpubr::ggarrange(gg3, gg4, ncol = 2, nrow = 1)
-ggsave("Graphics/FigureD1.jpeg", width = 7, height = 3.5, dpi = 300)
+ggsave("Graphics/FigureD1.jpeg", width = 7, height = 3.5, dpi = 300,
+       bg = "white")
 
 
 ################################################################################
@@ -411,7 +416,8 @@ plot_dat %>%
   theme(strip.background = element_rect(fill = gray(0.8)),
         legend.position  = "none",
         axis.title.x     = element_blank())
-ggsave("Graphics/FigureD2.jpeg", width = 6, height = 2, dpi = 300)
+ggsave("Graphics/FigureD2.jpeg", width = 6, height = 2, dpi = 300,
+       bg = "white")
 
 create_APCsummary(list(model_E), dat = dat_E,
                   apc_range = list("cohort" = 1939:2018))
@@ -468,7 +474,8 @@ ggplot(plot_dat_linear, mapping = aes(x = param, y = coef)) +
         axis.title.x    = element_blank(),
         axis.text.x     = element_text(angle = 45, hjust = 1),
         strip.background = element_rect(fill = gray(0.8)))
-ggsave("Graphics/FigureD3.jpeg", width = 8, height = 5, dpi = 300)
+ggsave("Graphics/FigureD3.jpeg", width = 8, height = 5, dpi = 300,
+       bg = "white")
 
 # nonlinear income effect -------------------------------------------------
 plot_1Dsmooth(model_E, select = 2, plot_ci = TRUE, ylim = c(0.25,128)) +
@@ -478,7 +485,8 @@ plot_1Dsmooth(model_E, select = 2, plot_ci = TRUE, ylim = c(0.25,128)) +
                      labels = c("0.25","0.5","1","2", "4", "8", "16")) +
   scale_color_manual(values = cols[3]) +
   theme(panel.grid.minor = element_blank())
-ggsave("Graphics/FigureD4.jpeg", width = 6, height = 2.5, dpi = 300)
+ggsave("Graphics/FigureD4.jpeg", width = 6, height = 2.5, dpi = 300,
+       bg = "white")
 
 
 ################################################################################

@@ -11,7 +11,7 @@ under the [CC BY 4.0 license](https://creativecommons.org/licenses/by/4.0/).
 
 Folder structure:
 
-- Code: Code for the main analyses and the sensitivity analyses, both building on functions in `Functions.R`
-- Data: Above described sample from the full dataset
-- Graphics: Figures reproduced on the sample data.
-- Models: Estimated model objects (based on the data sample)
+- Code: Code for the main analyses and the sensitivity analyses, both building on functions in `Functions.R`.
+- Data: Above described sample from the full dataset.
+- Graphics: Figures reproduced on the sample data. Figure 1 is not based on R code.
+- Models: Estimated model objects (based on the data sample).

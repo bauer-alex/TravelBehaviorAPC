@@ -127,20 +127,7 @@ read_and_prepare_data <- function(model = NULL) {
     mutate(cohort = period - age)
   
   
-  ### 13. only analyze data since 1983 as the travel expense data cannot be
-  ###     trusted before that year.
-  ###     Also remove 1986 since the income was unrealistically low in that year.
-  dat <- dat %>% filter(period >= 1983 & period != 1986)
-  
-  
-  ### 14. restrict data to Western Germans with German citizenship
-  ### moved to specific model types
-  #dat <- dat %>%
-  #  filter(is.na(S_Herkunft) | S_Herkunft == "West",
-  #         is.na(S_Staatsangehoerigkeit) | S_Staatsangehoerigkeit == "Deutsch")
-  
-  
-  ### 15. factorize the household size and drop old factor levels of categorical
+  ### 13. factorize the household size and drop old factor levels of categorical
   ###     variables
   dat <- dat %>% mutate(S_Haushaltsgroesse = factor(S_Haushaltsgroesse))
   vars_cat <- c("S_Geschlecht", "S_Bildung", "S_Kinder_0_bis_5_binaer",
@@ -148,12 +135,12 @@ read_and_prepare_data <- function(model = NULL) {
   dat <- dat %>% mutate(across(all_of(vars_cat), ~ droplevels(.)))
   
   
-  ### 16. winsorize household income per effective person:
+  ### 14. winsorize household income per effective person:
   #dat <- dat %>%
   #  mutate(S_Einkommen_HH_equi = if_else(S_Einkommen_HH_equi > 6000, 6000,
   #                                       S_Einkommen_HH_equi))
   
-  ### 17. create a column containing the name of the person's generation
+  ### 15. create a column containing the name of the person's generation
   generations <- c("Generations before 1939","Silent Generation","Baby Boomer",
                    "Generation X","Generation Y","Generation Z")
   dat <- dat %>% 
@@ -165,7 +152,7 @@ read_and_prepare_data <- function(model = NULL) {
                                   cohort <= 2010 ~ generations[6])) %>% 
     mutate(generation = factor(generation, levels = generations))
   
-  ### 18. calculate new variable of occupation (if S_BerufAktuell = nicht
+  ### 16. calculate new variable of occupation (if S_BerufAktuell = nicht
   ###     beschaeftigt, S_BerufAktuell_HV)
   ###     Not used in the end, because of the multicollinearity with age
   ###     (most 18/19 year-olds are still in education, and nearly all

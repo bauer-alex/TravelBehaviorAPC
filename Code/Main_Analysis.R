@@ -69,7 +69,7 @@ gg4 <- plot_variable(dat_E, y_var = "rel_expenses", plot_type = "line-points",
 
 # joint plot
 ggpubr::ggarrange(gg1, gg2, gg3, gg4, ncol = 2, nrow = 2)
-ggsave("Graphics/Figure2.png", width = 10, height = 6, dpi = 300)
+ggsave("Graphics/Figure2.jpeg", width = 10, height = 6, dpi = 300)
 
 
 ################################################################################
@@ -245,7 +245,7 @@ gg2 <- plot_dat %>%
         legend.position  = "none")
 
 ggpubr::ggarrange(gg1, gg2, nrow = 2, heights = c(2/3,1/3))
-ggsave("Graphics/Figure3.png", width = 6, height = 4, dpi = 300)
+ggsave("Graphics/Figure3.jpeg", width = 6, height = 4, dpi = 300)
 
 create_APCsummary(list(model_P), dat = dat_P, apc_range = list("cohort" = 1939:2018))
 create_APCsummary(list(model_F), dat = dat_F, apc_range = list("cohort" = 1939:2018))
@@ -314,7 +314,7 @@ ggplot(plot_dat, mapping = aes(x = param, y = coef)) +
         axis.title.x    = element_blank(),
         axis.text.x     = element_text(angle = 45, hjust = 1),
         strip.background = element_rect(fill = gray(0.8)))
-ggsave("Graphics/FigureB1.png", width = 8, height = 7, dpi = 300)
+ggsave("Graphics/FigureB1.jpeg", width = 8, height = 7, dpi = 300)
 
 # nonlinear income effects 
 plot_dat_list <- lapply(model_suffices, function(suffix) {
@@ -350,7 +350,7 @@ ggplot() +
   theme(strip.background = element_rect(fill = gray(0.8)),
         legend.position  = "none",
         panel.grid.minor = element_blank())
-ggsave("Graphics/FigureB2.png", width = 6, height = 2, dpi = 300)
+ggsave("Graphics/FigureB2.jpeg", width = 6, height = 2, dpi = 300)
 
 
 ################################################################################
@@ -401,7 +401,7 @@ median(abs(prediction - dat_E_test$rel_expenses) / dat_E_test$rel_expenses,
        na.rm = TRUE)
 
 # QQ plot for the expenses model
-png("Graphics/FigureB3.png", width = 7, height = 7, units = "cm",
+jpeg("Graphics/FigureB3.jpeg", width = 7, height = 7, units = "cm",
     pointsize = 5, res = 300)
 qq.gam(model_E)
 dev.off()

@@ -62,8 +62,8 @@ gg4 <- plot_variable(dat_E, y_var = "rel_expenses", plot_type = "line-points",
 
 # joint plot
 ggpubr::ggarrange(gg1, gg2, gg3, gg4, ncol = 2, nrow = 2)
-ggsave("Graphics/Figure2.jpeg", width = 10, height = 6, dpi = 300,
-       bg = "white")
+#ggsave("Graphics/Figure2.jpeg", width = 10, height = 6, dpi = 300,
+#       bg = "white")
 
 
 ################################################################################
@@ -128,7 +128,7 @@ freq_dat_list <- lapply(vars, function(var) {
 })
 
 freq_dat <- dplyr::bind_rows(freq_dat_list)
-write.csv2(freq_dat, file = "Graphics/Table2.csv", row.names = FALSE)
+#write.csv2(freq_dat, file = "Graphics/Table2.csv", row.names = FALSE)
 
 
 ################################################################################
@@ -143,7 +143,7 @@ model_P <- bam(formula = y_atLeastOneUR ~ te(period, age, k = c(10, 10), bs = "p
                  S_Bildung + s(S_Einkommen_HH_equi, bs = "ps", k =10) +
                  S_Haushaltsgroesse,
                family = binomial(link = "logit"), data = dat_P)
-saveRDS(object = model_P, file = "Models/Main_Analysis/Model_participation.rds")
+#saveRDS(object = model_P, file = "Models/Main_Analysis/Model_participation.rds")
 
 # model estimation frequency
 dat_F <- read_and_prepare_data(model = "frequency")
@@ -152,7 +152,7 @@ model_F <- bam(y_atLeastTwoURs ~ te(period, age, k = c(10, 10), bs = "ps") +
                  S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse + S_Bildung +
                  s(S_Einkommen_HH_equi, bs = "ps", k = 10) + S_Haushaltsgroesse,
                family = binomial(link = "logit"), data = dat_F)
-saveRDS(object = model_F, file = "Models/Main_Analysis/Model_frequency.rds")
+#saveRDS(object = model_F, file = "Models/Main_Analysis/Model_frequency.rds")
 
 # model estimation expenses 
 dat_E <- read_and_prepare_data(model = "expenses")
@@ -163,7 +163,7 @@ model_E <- bam(formula = rel_expenses ~ te(period, age, bs = "ps", k = c(10, 10)
                  s(S_Einkommen_HH_equi, bs = "ps", k = 10),
                family = Gamma(link = "log"),
                data = dat_E)
-saveRDS(object = model_E, file = "Models/Main_Analysis/Model_expenses.rds")
+#saveRDS(object = model_E, file = "Models/Main_Analysis/Model_expenses.rds")
 
 # general preparations for all following plots 
 model_suffices <- c("P","F","E")
@@ -229,12 +229,30 @@ gg2 <- plot_dat %>%
         legend.position  = "none")
 
 ggpubr::ggarrange(gg1, gg2, nrow = 2, heights = c(2/3,1/3))
-ggsave("Graphics/Figure3.jpeg", width = 6, height = 4, dpi = 300,
-       bg = "white")
+#ggsave("Graphics/Figure3.jpeg", width = 6, height = 4, dpi = 300,
+#       bg = "white")
 
-create_APCsummary(list(model_P), dat = dat_P, apc_range = list("cohort" = 1939:2018))
-create_APCsummary(list(model_F), dat = dat_F, apc_range = list("cohort" = 1939:2018))
-create_APCsummary(list(model_E), dat = dat_E, apc_range = list("cohort" = 1939:2018))
+# Summary of effects:
+summary_P <- create_APCsummary(list(model_P), dat = dat_P,
+                               apc_range = list("cohort" = 1939:2018),
+                               kable = FALSE) %>%
+  mutate(model = "participation") %>%
+  dplyr::select(model, effect, value_withMaxEffect, value_withMinEffect,
+                max_effect, min_effect, ratio)
+summary_F <- create_APCsummary(list(model_F), dat = dat_F,
+                               apc_range = list("cohort" = 1939:2018),
+                               kable = FALSE) %>%
+  mutate(model = "frequency") %>%
+  dplyr::select(model, effect, value_withMaxEffect, value_withMinEffect,
+                max_effect, min_effect, ratio)
+summary_E <- create_APCsummary(list(model_E), dat = dat_E,
+                               apc_range = list("cohort" = 1939:2018),
+                               kable = FALSE) %>%
+  mutate(model = "expenses") %>%
+  dplyr::select(model, effect, value_withMaxEffect, value_withMinEffect,
+                max_effect, min_effect, ratio)
+summary_dat <- dplyr::bind_rows(summary_P, summary_F, summary_E)
+#write.csv2(summary_dat, file = "Graphics/Table3.csv", row.names = FALSE)
 
 # linear covariate effects
 plot_dat_list <- lapply(model_suffices, function(suffix) {
@@ -308,8 +326,8 @@ ggplot(plot_dat, mapping = aes(x = param, y = coef_exp)) +
         axis.title.x    = element_blank(),
         axis.text.x     = element_text(angle = 45, hjust = 1),
         strip.background = element_rect(fill = gray(0.8)))
-ggsave("Graphics/FigureA1.jpeg", width = 9, height = 7, dpi = 300,
-       bg = "white")
+#ggsave("Graphics/FigureA1.jpeg", width = 9, height = 7, dpi = 300,
+#       bg = "white")
 
 # nonlinear income effects 
 plot_dat_list <- lapply(model_suffices, function(suffix) {
@@ -340,8 +358,8 @@ ggplot() +
   theme(strip.background = element_rect(fill = gray(0.8)),
         legend.position  = "none",
         panel.grid.minor = element_blank())
-ggsave("Graphics/FigureA2.jpeg", width = 6, height = 2, dpi = 300,
-       bg = "white")
+#ggsave("Graphics/FigureA2.jpeg", width = 6, height = 2, dpi = 300,
+#       bg = "white")
 
 
 ################################################################################
@@ -404,8 +422,8 @@ qq_plot(model_E, method = "uniform") + ggtitle("") +
         strip.placement = "outside", strip.background = element_blank(),
         axis.title.y = element_text(margin = margin(0, 10, 0, 0)),
         axis.title.x = element_text(margin = margin(10, 0, 0, 0)))
-ggsave("Graphics/FigureA3.jpeg", width = 4, height = 4, dpi = 300,
-       bg = "white")
+#ggsave("Graphics/FigureA3.jpeg", width = 4, height = 4, dpi = 300,
+#       bg = "white")
 
 
 ################################################################################

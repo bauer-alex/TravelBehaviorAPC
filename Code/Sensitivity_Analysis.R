@@ -210,7 +210,7 @@ gg1 <- plot_dat %>%
   geom_vline(data = vline_dat, aes(xintercept = x), lty = 2, col = gray(0.3)) +
   geom_line() +
   facet_grid(model ~ variable, scales = "free") +
-  scale_y_continuous("Odds Ratio", breaks = c(.25,.5,1,2), trans = "log2",
+  scale_y_continuous("OR", breaks = c(.25,.5,1,2), trans = "log2",
                      limits = range(plot_dat$effect)) +
   scale_color_manual(values = cols[1:2]) +
   theme(axis.title.x     = element_blank(),
@@ -226,7 +226,7 @@ gg2 <- plot_dat %>%
   geom_vline(data = vline_dat, aes(xintercept = x), lty = 2, col = gray(0.3)) +
   geom_line() +
   facet_grid(model ~ variable, scales = "free") +
-  scale_y_continuous("exp(Effect)", breaks = c(0.9,1,1.1), trans = "log2") +
+  scale_y_continuous("EE", breaks = c(0.9,1,1.1), trans = "log2") +
   scale_color_manual(values = cols[3]) +
   theme(axis.title.x     = element_blank(),
         strip.text.x     = element_blank(),

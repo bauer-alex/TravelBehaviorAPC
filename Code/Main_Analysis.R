@@ -1,6 +1,6 @@
 ### This is the main code file containing the analyses done for the
-### publication "Temporal Changes in Travel Behavior over Age, Period and
-### Cohort - An Explanation Through the Meaning of Travel".
+### publication "Disentangling Temporal Changes in Travel Behavior: An Age,
+### Period, and Cohort Analysis".
 
 # Loading of necessary packages and sourcing of self-defined functions:
 library(APCtools)
@@ -9,6 +9,7 @@ library(ggplot2)
 library(ggpubr)
 library(mgcv)
 library(pROC)
+library(gratia)
 source("Code/Functions.R")
 theme_set(theme_minimal())
 
@@ -34,10 +35,6 @@ dat_P <- dat_P %>%
 gg1 <- plot_variable(dat_P, "participation", legend_title = "Participation") +
     scale_fill_manual("Participation", values = c("lightblue","dodgerblue3"))
 
-# density matrix
-plot_densityMatrix(dat_P, y_var = "participation",
-                   age_groups = age_groups, period_groups = period_groups)
-
 # travel frequency plot
 dat_F <- read_and_prepare_data(model = "frequency")
 
@@ -52,10 +49,6 @@ green_colors <- RColorBrewer::brewer.pal(6, "Greens")[6:2]
 gg2 <- plot_variable(dat_F, "JS_Anzahl_URs_cat") +
     scale_fill_manual("Number of\ntrips", values = green_colors)
 
-# density matrix
-plot_densityMatrix(dat_F, y_var = "JS_Anzahl_URs_cat",
-                   age_groups = age_groups, period_groups = period_groups)
-
 # relative travel expenses plot 
 dat_E <- read_and_prepare_data(model = "expenses")
 
@@ -69,8 +62,8 @@ gg4 <- plot_variable(dat_E, y_var = "rel_expenses", plot_type = "line-points",
 
 # joint plot
 ggpubr::ggarrange(gg1, gg2, gg3, gg4, ncol = 2, nrow = 2)
-ggsave("Graphics/Figure2.jpeg", width = 10, height = 6, dpi = 300,
-       bg = "white")
+#ggsave("Graphics/Figure2.jpeg", width = 10, height = 6, dpi = 300,
+#       bg = "white")
 
 
 ################################################################################
@@ -135,18 +128,7 @@ freq_dat_list <- lapply(vars, function(var) {
 })
 
 freq_dat <- dplyr::bind_rows(freq_dat_list)
-write.csv2(freq_dat, file = "Graphics/Table1.csv", row.names = FALSE)
-
-
-# table of generations
-gen_table <- dat %>% 
-  group_by(generation) %>% 
-  summarize(birth_years   = paste0(min(cohort)," - ",max(cohort)),
-            rel_frequency = paste0(round(100 * n() / nrow(dat), 1), "%"),
-            obs_periods   = paste0(min(period)," - ",max(period)),
-            obs_ages      = paste0(min(age)," - ",max(age)))
-
-write.csv2(gen_table, file = "Graphics/TableA1.csv", row.names = FALSE)
+#write.csv2(freq_dat, file = "Graphics/Table2.csv", row.names = FALSE)
 
 
 ################################################################################
@@ -161,7 +143,7 @@ model_P <- bam(formula = y_atLeastOneUR ~ te(period, age, k = c(10, 10), bs = "p
                  S_Bildung + s(S_Einkommen_HH_equi, bs = "ps", k =10) +
                  S_Haushaltsgroesse,
                family = binomial(link = "logit"), data = dat_P)
-saveRDS(object = model_P, file = "Models/Main_Analysis/Model_participation.rds")
+#saveRDS(object = model_P, file = "Models/Main_Analysis/Model_participation.rds")
 
 # model estimation frequency
 dat_F <- read_and_prepare_data(model = "frequency")
@@ -170,7 +152,7 @@ model_F <- bam(y_atLeastTwoURs ~ te(period, age, k = c(10, 10), bs = "ps") +
                  S_Geschlecht + S_Kinder_0_bis_5_binaer + S_Wohnortgroesse + S_Bildung +
                  s(S_Einkommen_HH_equi, bs = "ps", k = 10) + S_Haushaltsgroesse,
                family = binomial(link = "logit"), data = dat_F)
-saveRDS(object = model_F, file = "Models/Main_Analysis/Model_frequency.rds")
+#saveRDS(object = model_F, file = "Models/Main_Analysis/Model_frequency.rds")
 
 # model estimation expenses 
 dat_E <- read_and_prepare_data(model = "expenses")
@@ -181,11 +163,11 @@ model_E <- bam(formula = rel_expenses ~ te(period, age, bs = "ps", k = c(10, 10)
                  s(S_Einkommen_HH_equi, bs = "ps", k = 10),
                family = Gamma(link = "log"),
                data = dat_E)
-saveRDS(object = model_E, file = "Models/Main_Analysis/Model_expenses.rds")
+#saveRDS(object = model_E, file = "Models/Main_Analysis/Model_expenses.rds")
 
 # general preparations for all following plots 
 model_suffices <- c("P","F","E")
-model_labels   <- c("Participation","Frequency","Rel. Expenses")
+model_labels   <- c("Participation","Frequency","Expenses")
 
 # data prep for the marginal effect plots 
 plot_dat_list <- lapply(model_suffices, function(suffix) {
@@ -204,15 +186,16 @@ plot_dat_list <- lapply(model_suffices, function(suffix) {
 
 plot_dat <- plot_dat_list %>% dplyr::bind_rows() %>% 
   mutate(model    = factor(model,    levels = model_suffices, labels = model_labels),
-         variable = factor(variable, levels = c("Age","Period","Cohort")))
+         variable = factor(variable, levels = c("Age","Period","Cohort"))) %>%
+  filter(variable != "Cohort" | value >= 1939)
 
 # marginal effect plots 
-vlines_cohort <- list("cohort" = c(1938.5,1946.5,1966.5,1982.5,1994.5))
+vlines_cohort <- list("cohort" = c(1946.5,1966.5,1982.5,1994.5))
 cols          <- rev(scales::hue_pal()(3))
 
 # vertical lines, only to be drawn for the cohort plots
 vline_dat <- data.frame(variable = factor("Cohort", levels = c("Age","Period","Cohort")),
-                        x        = c(1938.5,1946.5,1966.5,1982.5,1994.5))
+                        x        = c(1946.5,1966.5,1982.5,1994.5))
 
 # 1) plot grid for participation and frequency
 gg1 <- plot_dat %>% 
@@ -232,7 +215,7 @@ gg1 <- plot_dat %>%
 
 # 2) plot grid for expenses
 gg2 <- plot_dat %>% 
-  filter(model == "Rel. Expenses") %>% 
+  filter(model == "Expenses") %>% 
   ggplot(aes(x = value, y = effect, col = model)) +
   geom_hline(yintercept = 1, lty = 2, col = gray(0.3)) +
   geom_vline(data = vline_dat, aes(xintercept = x), lty = 2, col = gray(0.3)) +
@@ -246,18 +229,36 @@ gg2 <- plot_dat %>%
         legend.position  = "none")
 
 ggpubr::ggarrange(gg1, gg2, nrow = 2, heights = c(2/3,1/3))
-ggsave("Graphics/Figure3.jpeg", width = 6, height = 4, dpi = 300,
-       bg = "white")
+#ggsave("Graphics/Figure3.jpeg", width = 6, height = 4, dpi = 300,
+#       bg = "white")
 
-create_APCsummary(list(model_P), dat = dat_P, apc_range = list("cohort" = 1939:2018))
-create_APCsummary(list(model_F), dat = dat_F, apc_range = list("cohort" = 1939:2018))
-create_APCsummary(list(model_E), dat = dat_E, apc_range = list("cohort" = 1939:2018))
+# Summary of effects:
+summary_P <- create_APCsummary(list(model_P), dat = dat_P,
+                               apc_range = list("cohort" = 1939:2018),
+                               kable = FALSE) %>%
+  mutate(model = "participation") %>%
+  dplyr::select(model, effect, value_withMaxEffect, value_withMinEffect,
+                max_effect, min_effect, ratio)
+summary_F <- create_APCsummary(list(model_F), dat = dat_F,
+                               apc_range = list("cohort" = 1939:2018),
+                               kable = FALSE) %>%
+  mutate(model = "frequency") %>%
+  dplyr::select(model, effect, value_withMaxEffect, value_withMinEffect,
+                max_effect, min_effect, ratio)
+summary_E <- create_APCsummary(list(model_E), dat = dat_E,
+                               apc_range = list("cohort" = 1939:2018),
+                               kable = FALSE) %>%
+  mutate(model = "expenses") %>%
+  dplyr::select(model, effect, value_withMaxEffect, value_withMinEffect,
+                max_effect, min_effect, ratio)
+summary_dat <- dplyr::bind_rows(summary_P, summary_F, summary_E)
+#write.csv2(summary_dat, file = "Graphics/Table3.csv", row.names = FALSE)
 
 # linear covariate effects
 plot_dat_list <- lapply(model_suffices, function(suffix) {
   
   m <- get(paste0("model_",suffix))
-  plot_dat_m <- plot_linearEffects(m, return_plotData = TRUE) %>% 
+  plot_dat_m <- plot_linearEffects(m, return_plotData = TRUE, refCat = TRUE) %>% 
     mutate(model = model_labels[match(suffix, model_suffices)])
   
   return(plot_dat_m)
@@ -266,7 +267,7 @@ plot_dat_list <- lapply(model_suffices, function(suffix) {
 plot_dat <- dplyr::bind_rows(plot_dat_list) %>%
   mutate(model = factor(x = model,
                         levels = c("Participation", "Frequency",
-                                   "Rel. Expenses"))) %>% 
+                                   "Expenses"))) %>% 
   mutate(vargroup = as.character(vargroup)) %>% 
   mutate(vargroup = case_when(vargroup == "S_Geschlecht"            ~ "Gender",
                               vargroup == "S_Bildung"               ~ "Education",
@@ -279,15 +280,20 @@ plot_dat <- dplyr::bind_rows(plot_dat_list) %>%
                                                 "Young children","City size","Trip length"))) %>% 
   mutate(param = as.character(param)) %>% 
   mutate(param = case_when(param == "weiblich"                  ~ "female",
+                           param == "maennlich"                 ~ "male",
+                           grepl("Hauptschule", param)       ~ "junior high school",
                            grepl("Mittlere Reife", param)       ~ "secondary school",
                            grepl("Abitur",         param)       ~ "high school",
                            grepl("Universitaet",   param)       ~ "university or college",
+                           param == "keine Kinder dieser Altersstufe" ~ "no",
                            param == "Kinder dieser Altersstufe" ~ "yes",
                            param == "5.3"                       ~ ">=5",
+                           param == "bis 4.999"                 ~ "<5000",
                            param == "5.000 bis 49.999"          ~ "[5,000; 50,000)",
                            param == "50.000 bis 99.999"         ~ "[50,000; 100,000)",
                            param == "100.000 bis 499.999"       ~ "[100,000; 500,000)",
                            param == "500.000 und mehr"          ~ ">=500,000",
+                           param == "bis 5 Tage"                ~ "5 days",
                            param == "6 bis 8 Tage"              ~ "6-8 days",
                            param == "9 bis 12 Tage"             ~ "9-12 days",
                            param == "13 bis 15 Tage"            ~ "13-15 days",
@@ -297,27 +303,31 @@ plot_dat <- dplyr::bind_rows(plot_dat_list) %>%
                            param == "27 bis 29 Tage"            ~ "27-29 days",
                            param == "30 Tage und mehr"          ~ ">=30 days",
                            TRUE ~ param)) %>% 
-  mutate(param = factor(param, levels = c("female","secondary school","high school","university or college",
-                                          "2","3","4",">=5","yes",
-                                          "[5,000; 50,000)","[50,000; 100,000)",
+  mutate(param = factor(param, levels = c("male","female","junior high school",
+                                          "secondary school","high school","university or college",
+                                          "1","2","3","4",">=5","no","yes",
+                                          "<5000","[5,000; 50,000)","[50,000; 100,000)",
                                           "[100,000; 500,000)",">=500,000",
-                                          "6-8 days","9-12 days","13-15 days",
+                                          "5 days", "6-8 days","9-12 days","13-15 days",
                                           "16-19 days","20-22 days","23-26 days",
                                           "27-29 days",">=30 days")))
 
-ggplot(plot_dat, mapping = aes(x = param, y = coef)) +
+ggplot(plot_dat, mapping = aes(x = param, y = coef_exp)) +
   geom_hline(yintercept = 1, col = gray(0.3), lty = 2) +
-  geom_pointrange(mapping = aes(ymin = CI_lower, ymax = CI_upper, col = vargroup), size = 1) +
+  geom_point(mapping = aes(col = vargroup), size = 2.5) +
+  geom_pointrange(mapping = aes(ymin = CI_lower_exp, ymax = CI_upper_exp, col = vargroup),
+                  size = 1, fatten = 1) +
   geom_point(mapping = aes(col = vargroup), size = 1) +
   scale_y_continuous(trans = "log2", name = "exp(Effect)") +
   colorspace::scale_colour_discrete_qualitative(palette = "Dark 3") +
-  facet_grid(model ~ vargroup, scales = "free_x") +
+  facet_grid(model ~ vargroup, scales = "free_x", space = "free_x",
+             labeller = labeller(vargroup = label_wrap_gen(width = 12))) +
   theme(legend.position = "none",
         axis.title.x    = element_blank(),
         axis.text.x     = element_text(angle = 45, hjust = 1),
         strip.background = element_rect(fill = gray(0.8)))
-ggsave("Graphics/FigureB1.jpeg", width = 8, height = 7, dpi = 300,
-       bg = "white")
+#ggsave("Graphics/FigureA1.jpeg", width = 9, height = 7, dpi = 300,
+#       bg = "white")
 
 # nonlinear income effects 
 plot_dat_list <- lapply(model_suffices, function(suffix) {
@@ -332,12 +342,7 @@ plot_dat_list <- lapply(model_suffices, function(suffix) {
 plot_dat <- dplyr::bind_rows(plot_dat_list) %>%
   mutate(model = factor(x = model,
                         levels = c("Participation", "Frequency",
-                                   "Rel. Expenses")))
-
-# trim the CIs to limit the y-axis
-ylim <- c(0.25, 16)
-plot_dat$CI_lower[plot_dat$CI_lower < ylim[1]] <- ylim[1]
-plot_dat$CI_upper[plot_dat$CI_upper > ylim[2]] <- ylim[2]
+                                   "Expenses")))
 
 ggplot() +
   geom_hline(yintercept = 1, lty = 2, col = gray(0.3)) +
@@ -353,8 +358,8 @@ ggplot() +
   theme(strip.background = element_rect(fill = gray(0.8)),
         legend.position  = "none",
         panel.grid.minor = element_blank())
-ggsave("Graphics/FigureB2.jpeg", width = 6, height = 2, dpi = 300,
-       bg = "white")
+#ggsave("Graphics/FigureA2.jpeg", width = 6, height = 2, dpi = 300,
+#       bg = "white")
 
 
 ################################################################################
@@ -405,10 +410,20 @@ median(abs(prediction - dat_E_test$rel_expenses) / dat_E_test$rel_expenses,
        na.rm = TRUE)
 
 # QQ plot for the expenses model
-jpeg("Graphics/FigureB3.jpeg", width = 7, height = 7, units = "cm",
-    pointsize = 5, res = 300, bg = "white")
-qq.gam(model_E)
-dev.off()
+qq_plot(model_E, method = "uniform") + ggtitle("") +
+  theme(plot.subtitle = element_blank(),
+        text = element_text(size = 16), axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14),
+        legend.text = element_text(size = 16),
+        legend.key.width = unit(2, "lines"),
+        plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+        strip.text = element_text(size = 18, face = "bold"),
+        strip.text.y = element_text(size = 16), legend.text.align = 0,
+        strip.placement = "outside", strip.background = element_blank(),
+        axis.title.y = element_text(margin = margin(0, 10, 0, 0)),
+        axis.title.x = element_text(margin = margin(10, 0, 0, 0)))
+#ggsave("Graphics/FigureA3.jpeg", width = 4, height = 4, dpi = 300,
+#       bg = "white")
 
 
 ################################################################################

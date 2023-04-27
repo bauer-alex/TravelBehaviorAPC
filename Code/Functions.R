@@ -27,7 +27,8 @@ read_and_prepare_data <- function(model = NULL) {
                         JS_HUR_Ausgaben_gesamt, JS_HUR_Reisebegleitung_HH,
                         JS_HUR_Reisebegleitung_Gesamtanzahl, JS_HUR_Reisedauer,
                         JS_Gesamt_Ausgaben, JS_Anzahl_URs,
-                        S_BerufAktuell, S_BerufAktuell_HV)
+                        S_BerufAktuell, S_BerufAktuell_HV) %>%
+    mutate(S_Staatsangehoerigkeit = as.character(S_Staatsangehoerigkeit))
   
   
   ### 3. only use persons between 18 and 80 years of age, as younger and older
@@ -38,8 +39,8 @@ read_and_prepare_data <- function(model = NULL) {
   
   ### 4. recode 'keine Angabe' and '-99' values to NA
   dat <- dat %>% 
-    mutate_all(~ na_if(., "keine Angabe")) %>% 
-    mutate_all(~ na_if(., "-99"))
+    mutate_if(is.factor, ~ na_if(., "keine Angabe")) %>% 
+    mutate_if(is.numeric, ~ na_if(., -99))
   
   
   ### 5. recode 'mehr als 5 Personen' in household size to 5.3 persons.

@@ -31,7 +31,7 @@ dat_E <- read_and_prepare_data(model = "expenses_sensitivity")
 
 # first plot the household income
 gg3 <- plot_variable(dat_E, y_var = "S_Einkommen_HH_equi", plot_type = "line-points",
-                     ylim = c(0,1900), ylab = "Median of household income")
+                     ylim = c(0,1900), ylab = "Median of household income [€]")
 
 # plot the relative expenses
 gg4 <- plot_variable(dat_E, y_var = "rel_expenses", plot_type = "line-points",
@@ -79,12 +79,12 @@ plot_dat %>%
   geom_vline(data = vline_dat, aes(xintercept = x), lty = 2, col = gray(0.3)) +
   geom_line(col = cols[3]) +
   facet_grid(model ~ as.factor(variable), scales = "free") +
-  scale_y_continuous("exp(Effect)", breaks = c(0.9,1,1.1), trans = "log2") +
+  scale_y_continuous("EE", breaks = c(0.9,1,1.1), trans = "log2") +
   theme(strip.background = element_rect(fill = gray(0.8)),
         legend.position  = "none",
         axis.title.x     = element_blank())
-#ggsave("Graphics/FigureB2.jpeg", width = 6, height = 2, dpi = 300,
-#       bg = "white")
+ggsave("Graphics/FigureB2.jpeg", width = 6, height = 2, dpi = 300,
+       bg = "white")
 
 # Summary of effects:
 summary_dat <- create_APCsummary(list(model_E), dat = dat_E,
@@ -147,7 +147,7 @@ ggplot(plot_dat, mapping = aes(x = param, y = coef_exp)) +
   geom_point(mapping = aes(col = vargroup), size = 2.5) +
   geom_pointrange(mapping = aes(ymin = CI_lower_exp, ymax = CI_upper_exp, col = vargroup),
                   size = 1, fatten = 1) +
-  scale_y_continuous(trans = "log2", name = "exp(Effect)") +
+  scale_y_continuous(trans = "log2", name = "EE") +
   colorspace::scale_colour_discrete_qualitative(palette = "Dark 3") +
   facet_grid(model ~ vargroup, scales = "free_x", space = "free_x",
              labeller = labeller(vargroup = label_wrap_gen(width = 12))) +
@@ -161,7 +161,7 @@ ggplot(plot_dat, mapping = aes(x = param, y = coef_exp)) +
 # nonlinear income effect -------------------------------------------------
 plot_1Dsmooth(model_E, select = 2, plot_ci = TRUE, ylim = c(0.25,128)) +
   scale_x_continuous(limits = c(0, 6100), name = "Household income [€]") +
-  scale_y_continuous("exp(Effect)", trans = "log2", limits = c(0.25, 16),
+  scale_y_continuous("EE", trans = "log2", limits = c(0.25, 16),
                      breaks = 2^c(-2,-1,0,1, 2, 3, 4),
                      labels = c("0.25","0.5","1","2", "4", "8", "16")) +
   scale_color_manual(values = cols[3]) +
@@ -215,7 +215,7 @@ dat_E <- read_and_prepare_data(model = "expenses_east")
 
 # first plot the household income
 gg3 <- plot_variable(dat_E, y_var = "S_Einkommen_HH_equi", plot_type = "line-points",
-                     ylim = c(0,1900), ylab = "Median of household income")
+                     ylim = c(0,1900), ylab = "Median of household income [€]")
 
 # plot the relative expenses
 gg4 <- plot_variable(dat_E, y_var = "rel_expenses", plot_type = "line-points",
@@ -474,7 +474,7 @@ ggplot(plot_dat, mapping = aes(x = param, y = coef_exp)) +
   geom_pointrange(mapping = aes(ymin = CI_lower_exp, ymax = CI_upper_exp, col = vargroup),
                   size = 1, fatten = 1) +
   geom_point(mapping = aes(col = vargroup), size = 1) +
-  scale_y_continuous(trans = "log2", name = "exp(Effect)") +
+  scale_y_continuous(trans = "log2", name = expression("OR" ~ " / EE")) +
   colorspace::scale_colour_discrete_qualitative(palette = "Dark 3") +
   facet_grid(model ~ vargroup, scales = "free_x", space = "free_x",
              labeller = labeller(vargroup = label_wrap_gen(width = 12))) +
@@ -506,7 +506,7 @@ ggplot() +
               fill = gray(0.75)) +
   geom_line(data = plot_dat, aes(x, y, col = model)) +
   facet_grid(. ~ model) + scale_x_continuous(limits = c(0, 6000)) +
-  scale_y_continuous("exp(Effect)", trans = "log2", limits = c(0.25, 16),
+  scale_y_continuous(expression("OR" ~ " / EE"), trans = "log2", limits = c(0.25, 16),
                      breaks = 2^c(-2,-1,0,1, 2, 3, 4),
                      labels = c("0.25","0.5","1","2", "4", "8", "16")) +
   scale_color_manual(values = cols) +

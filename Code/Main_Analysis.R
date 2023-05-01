@@ -58,7 +58,7 @@ gg3 <- plot_variable(dat_E, y_var = "S_Einkommen_HH_equi", plot_type = "line-poi
 
 # plot the relative expenses
 gg4 <- plot_variable(dat_E, y_var = "rel_expenses", plot_type = "line-points",
-                     ylab = "Median of rel. expenses [€]", ylim = c(0,1))
+                     ylab = "Median of rel. expenses", ylim = c(0,1))
 
 # joint plot
 ggpubr::ggarrange(gg1, gg2, gg3, gg4, ncol = 2, nrow = 2)
@@ -318,7 +318,7 @@ ggplot(plot_dat, mapping = aes(x = param, y = coef_exp)) +
   geom_pointrange(mapping = aes(ymin = CI_lower_exp, ymax = CI_upper_exp, col = vargroup),
                   size = 1, fatten = 1) +
   geom_point(mapping = aes(col = vargroup), size = 1) +
-  scale_y_continuous(trans = "log2", name = "exp(Effect)") +
+  scale_y_continuous(trans = "log2", name = expression("OR" ~ " / EE")) +
   colorspace::scale_colour_discrete_qualitative(palette = "Dark 3") +
   facet_grid(model ~ vargroup, scales = "free_x", space = "free_x",
              labeller = labeller(vargroup = label_wrap_gen(width = 12))) +

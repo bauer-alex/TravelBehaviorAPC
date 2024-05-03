@@ -186,7 +186,9 @@ plot_dat_list <- lapply(model_suffices, function(suffix) {
 
 plot_dat <- plot_dat_list %>% dplyr::bind_rows() %>% 
   mutate(model    = factor(model,    levels = model_suffices, labels = model_labels),
-         variable = factor(variable, levels = c("Age","Period","Cohort"))) %>%
+         variable = factor(variable,
+                           levels = c("age","period","cohort"),
+                           labels = c("Age","Period","Cohort"))) %>%
   filter(variable != "Cohort" | value >= 1939)
 
 # marginal effect plots 

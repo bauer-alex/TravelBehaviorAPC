@@ -1,7 +1,7 @@
 Overview
 ------------
 
-This is the accompanying code repository for the paper Bartl et al. (2023) - ''Disentangling Temporal Changes in Travel Behavior: An Age, Period, and Cohort Analysis'.
+This is the accompanying code repository for the paper Bartl et al. (2023) - ''Disentangling and Explaining Temporal Change in Travel Behavior: An Age-Period-Cohort Analysis Based on German Travel Demand'.
 
 The repository contains the R code for all analyses in the paper, including the supplementary material.
 The data in this repository is a randomly drawn 20% sample of the full dataset, which we are not allowed to make freely available.

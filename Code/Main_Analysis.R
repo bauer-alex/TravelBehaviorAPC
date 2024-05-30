@@ -169,6 +169,25 @@ model_E <- bam(formula = rel_expenses ~ te(period, age, bs = "ps", k = c(10, 10)
 model_suffices <- c("P","F","E")
 model_labels   <- c("Participation","Frequency","Expenses")
 
+# create an effect heatmap (including confidence intervals) for every model
+options(digits = 2)
+APCtools::plot_APCheatmap(dat          = dat_P,
+                          model        = model_P,
+                          bin_heatmap  = FALSE,
+                          legend_title = "exp effect    ")
+# ggsave("Graphics/FigureB5_participation.jpeg", width = 12, height = 5)
+APCtools::plot_APCheatmap(dat          = dat_F,
+                          model        = model_F,
+                          bin_heatmap  = FALSE,
+                          legend_title = "exp effect    ")
+# ggsave("Graphics/FigureB6_frequency.jpeg", width = 12, height = 5)
+APCtools::plot_APCheatmap(dat          = dat_E,
+                          model        = model_E,
+                          bin_heatmap  = FALSE,
+                          legend_title = "exp effect    ")
+# ggsave("Graphics/FigureB7_expenses.jpeg", width = 12, height = 5)
+
+
 # data prep for the marginal effect plots 
 plot_dat_list <- lapply(model_suffices, function(suffix) {
   
@@ -429,20 +448,3 @@ qq_plot(model_E, method = "uniform") + ggtitle("") +
 
 
 ################################################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

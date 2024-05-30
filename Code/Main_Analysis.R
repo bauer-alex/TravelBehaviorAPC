@@ -174,17 +174,17 @@ options(digits = 2)
 APCtools::plot_APCheatmap(dat          = dat_P,
                           model        = model_P,
                           bin_heatmap  = FALSE,
-                          legend_title = "exp effect    ")
+                          legend_title = "Odds Ratio    ")
 # ggsave("Graphics/FigureB5_participation.jpeg", width = 12, height = 5)
 APCtools::plot_APCheatmap(dat          = dat_F,
                           model        = model_F,
                           bin_heatmap  = FALSE,
-                          legend_title = "exp effect    ")
+                          legend_title = "Odds Ratio    ")
 # ggsave("Graphics/FigureB6_frequency.jpeg", width = 12, height = 5)
 APCtools::plot_APCheatmap(dat          = dat_E,
                           model        = model_E,
                           bin_heatmap  = FALSE,
-                          legend_title = "exp effect    ")
+                          legend_title = "exponentiated effect       ")
 # ggsave("Graphics/FigureB7_expenses.jpeg", width = 12, height = 5)
 
 

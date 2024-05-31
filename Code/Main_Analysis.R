@@ -5,6 +5,7 @@
 # Loading of necessary packages and sourcing of self-defined functions:
 library(APCtools)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
 library(ggpubr)
 library(mgcv)
@@ -33,7 +34,14 @@ dat_P <- dat_P %>%
 
 # marginal distribution
 gg1 <- plot_variable(dat_P, "participation", legend_title = "Participation") +
-    scale_fill_manual("Participation", values = c("lightblue","dodgerblue3"))
+    scale_fill_manual("Participation  ", values = c("lightblue","dodgerblue3")) +
+  scale_x_discrete(breaks = 1983:2018,
+                   labels = c(1983, rep("", 6), 1990, rep("", 4),
+                              1995, rep("", 4), 2000, rep("", 4), 2005,
+                              rep("", 4), 2010, rep("", 7), 2018)) +
+  scale_y_continuous("Rel. frequency", labels = scales::percent) +
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "bottom")
 
 # travel frequency plot
 dat_F <- read_and_prepare_data(model = "frequency")
@@ -46,24 +54,67 @@ dat_F <- dat_F %>%
 
 # marginal distribution
 green_colors <- RColorBrewer::brewer.pal(6, "Greens")[6:2]
-gg2 <- plot_variable(dat_F, "JS_Anzahl_URs_cat") +
-    scale_fill_manual("Number of\ntrips", values = green_colors)
+gg2 <- dat_F %>% 
+  mutate(JS_Anzahl_URs_cat = factor(JS_Anzahl_URs_cat,
+                                    levels = c("5+ trips", "4", "3", "2", "1"),
+                                    labels = 5:1)) %>% 
+  plot_variable("JS_Anzahl_URs_cat") +
+  scale_fill_manual("No. of trips  ", values = green_colors) +
+  scale_x_discrete(breaks = 1983:2018,
+                   labels = c(1983, rep("", 6), 1990, rep("", 4),
+                              1995, rep("", 4), 2000, rep("", 4), 2005,
+                              rep("", 4), 2010, rep("", 7), 2018)) +
+  scale_y_continuous("Rel. frequency", labels = scales::percent) +
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "bottom")
 
 # relative travel expenses plot 
 dat_E <- read_and_prepare_data(model = "expenses")
 
-# first plot the household income
-gg3 <- plot_variable(dat_E, y_var = "S_Einkommen_HH_equi", plot_type = "line-points",
-                     ylim = c(0,1900), ylab = "Median of household income [€]")
-
+# plot the household income
+dat_plotIncome <- dat_E %>% 
+  group_by(period) %>% 
+  summarize(q10    = quantile(S_Einkommen_HH_equi, probs = 0.1),
+            median = median(S_Einkommen_HH_equi),
+            q90    = quantile(S_Einkommen_HH_equi, probs = 0.9)) %>% 
+  pivot_longer(-period) %>% 
+  mutate(name = factor(name, levels = c("q10", "median", "q90"),
+                       labels = c("10% quantile  ", "median  ", "90% quantile  ")))
+gg3 <- ggplot(dat_plotIncome, aes(x = period, y = value, group = name, color = name)) +
+  geom_line(aes(linetype = name)) +
+  geom_point() +
+  ylim(c(0, NA)) +
+  scale_color_manual(values = c("gray80", "black", "gray80")) +
+  scale_linetype_manual(values = c(2, 1, 2)) +
+  xlab("Period") +
+  ylab("Median of household income [€]") +
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "bottom",
+        legend.title    = element_blank())
 # plot the relative expenses
-gg4 <- plot_variable(dat_E, y_var = "rel_expenses", plot_type = "line-points",
-                     ylab = "Median of rel. expenses", ylim = c(0,1))
+dat_plotExpenses <- dat_E %>% 
+  group_by(period) %>% 
+  summarize(q10    = quantile(rel_expenses, probs = 0.1),
+            median = median(rel_expenses),
+            q90    = quantile(rel_expenses, probs = 0.9)) %>% 
+  pivot_longer(-period) %>% 
+  mutate(name = factor(name, levels = c("q10", "median", "q90"),
+                       labels = c("10% quantile  ", "median  ", "90% quantile  ")))
+gg4 <- ggplot(dat_plotExpenses, aes(x = period, y = value, group = name, color = name)) +
+  geom_line(aes(linetype = name)) +
+  geom_point() +
+  scale_color_manual(values = c("gray80", "black", "gray80")) +
+  scale_linetype_manual(values = c(2, 1, 2)) +
+  xlab("Period") +
+  scale_y_continuous("Median or rel. expenses", labels = scales::percent,
+                     limits = c(0, NA)) +
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "bottom",
+        legend.title    = element_blank())
 
 # joint plot
 ggpubr::ggarrange(gg1, gg2, gg3, gg4, ncol = 2, nrow = 2)
-#ggsave("Graphics/Figure2.jpeg", width = 10, height = 6, dpi = 300,
-#       bg = "white")
+# ggsave("Graphics/Figure2.jpeg", width = 11, height = 8, dpi = 300, bg = "white")
 
 
 ################################################################################

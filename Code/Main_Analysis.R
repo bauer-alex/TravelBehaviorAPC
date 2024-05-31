@@ -277,12 +277,13 @@ gg1 <- plot_dat %>%
   geom_vline(data = vline_dat, aes(xintercept = x), lty = 2, col = gray(0.3)) +
   geom_line() +
   facet_grid(model ~ variable, scales = "free") +
-  scale_y_continuous("OR", breaks = c(.25,.5,1,2), trans = "log2",
+  scale_y_continuous("OR", breaks = c(.5, .75, 1, 1.25, 1.5), trans = "log2",
                      limits = range(plot_dat$effect)) +
   scale_color_manual(values = cols[1:2]) +
   theme(axis.title.x     = element_blank(),
         axis.text.x      = element_blank(),
         strip.background = element_rect(fill = gray(0.8)),
+        panel.grid.minor = element_blank(),
         legend.position  = "none")
 
 # 2) plot grid for expenses
@@ -293,16 +294,16 @@ gg2 <- plot_dat %>%
   geom_vline(data = vline_dat, aes(xintercept = x), lty = 2, col = gray(0.3)) +
   geom_line() +
   facet_grid(model ~ variable, scales = "free") +
-  scale_y_continuous("EE", breaks = c(0.9,1,1.1), trans = "log2") +
+  scale_y_continuous("EE", breaks = c(.9,.95,1,1.05,1.1), trans = "log2", limits = c(0.9, 1.1)) +
   scale_color_manual(values = cols[3]) +
   theme(axis.title.x     = element_blank(),
         strip.text.x     = element_blank(),
         strip.background = element_rect(fill = gray(0.8)),
+        panel.grid.minor = element_blank(),
         legend.position  = "none")
 
 ggpubr::ggarrange(gg1, gg2, nrow = 2, heights = c(2/3,1/3))
-#ggsave("Graphics/Figure3.jpeg", width = 6, height = 4, dpi = 300,
-#       bg = "white")
+# ggsave("Graphics/Figure3.jpeg", width = 6, height = 4, dpi = 300, bg = "white")
 
 # Summary of effects:
 summary_P <- create_APCsummary(list(model_P), dat = dat_P,

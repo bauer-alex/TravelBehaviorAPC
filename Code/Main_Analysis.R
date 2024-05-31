@@ -385,7 +385,29 @@ ggplot() +
 
 ################################################################################
 
-# Model evaluation:
+# Check the logistic regression models for overdispersion:
+
+calc_dispersionParameter <- function(model) {
+  
+  # Extract Pearson residuals:
+  residuals <- residuals(model, type = "pearson")
+  
+  # Calculate the overdispersion parameter:
+  n <- length(model$y)            # number of observations
+  p <- length(model$coefficients) # number of parameters estimated
+  dispersion_param <- sum(residuals^2) / (n - p)
+  
+  return(dispersion_param)
+}
+
+
+calc_dispersionParameter(model_P)
+calc_dispersionParameter(model_F)
+
+
+################################################################################
+
+# Further model evaluation:
 
 # Participation:
 set.seed(3456)
